@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAG: The Human Disconnect</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&family=IBM+Plex+Mono:wght@300;400;600&display=swap');
+
+  /* ============================================================
+     GLOBAL RESET & BASE
+  ============================================================ */
+  :root {
+    --black:       #04040a;
+    --white:       #f0eeea;
+    --red:         #ff2020;
+    --dim:         #9a9a9a;
+    --cyan:        #00e8ff;
+    --pink:        #ff00cc;
+    --mid:         #1a1a1f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    line-height: 1.85;
+    overflow-x: hidden;
+  }
+
+  /* Global scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.07) 2px,
+      rgba(0,0,0,0.07) 4px
+    );
+    pointer-events: none;
+    z-index: 9000;
+  }
+
+  /* ============================================================
+     POSTER / HERO — 5:2 banner that opens the page
+  ============================================================ */
+  .poster {
+    width: 100%;
+    aspect-ratio: 5 / 2;
+    max-height: 520px;
+    position: relative;
+    background: #04040a;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* Grid lines */
+  .poster::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,232,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,232,255,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    z-index: 0;
+  }
+
+  .p-slash {
+    position: absolute;
+    top: -60px; right: 38%;
+    width: 3px; height: 130%;
+    background: var(--red);
+    transform: rotate(18deg);
+    transform-origin: top center;
+    z-index: 1; opacity: 0.7;
+  }
+  .p-slash2 {
+    position: absolute;
+    top: -60px; right: calc(38% + 18px);
+    width: 1px; height: 130%;
+    background: var(--red);
+    transform: rotate(18deg);
+    transform-origin: top center;
+    z-index: 1; opacity: 0.3;
+  }
+  .p-grain {
+    position: absolute; inset: 0; z-index: 2; opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px;
+  }
+  .p-glow-r {
+    position: absolute; width: 55%; height: 200%;
+    background: radial-gradient(circle, rgba(255,20,20,0.11) 0%, transparent 65%);
+    top: -50%; right: -5%; z-index: 0; pointer-events: none;
+  }
+  .p-glow-b {
+    position: absolute; width: 40%; height: 150%;
+    background: radial-gradient(circle, rgba(0,200,255,0.07) 0%, transparent 65%);
+    bottom: -30%; left: 25%; z-index: 0; pointer-events: none;
+  }
+  .p-scanlines {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
+    z-index: 3; pointer-events: none;
+  }
+
+  /* Left panel — ping numbers */
+  .p-left {
+    position: relative; z-index: 10;
+    width: 42%; height: 100%;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: clamp(20px, 4%, 52px) clamp(16px, 4%, 52px);
+  }
+  .p-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(8px, 1vw, 11px);
+    letter-spacing: 4px; color: var(--red);
+    text-transform: uppercase;
+    margin-bottom: clamp(12px, 2vw, 22px);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .p-eyebrow::before {
+    content: ''; display: inline-block;
+    width: 18px; height: 1px; background: var(--red);
+  }
+  .p-vs-block {
+    display: flex; flex-direction: column;
+    gap: clamp(2px, 0.5vw, 8px);
+    margin-bottom: clamp(12px, 2vw, 28px);
+  }
+  .p-ping-row { display: flex; align-items: baseline; gap: 10px; }
+  .p-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(44px, 7.5vw, 92px);
+    letter-spacing: 2px; line-height: 1;
+  }
+  .p-num.fast { color: var(--cyan); animation: pulse-blue 2.5s ease-in-out infinite; }
+  .p-num.slow { color: var(--red);  animation: flicker-red 3s ease-in-out infinite; }
+
+  @keyframes pulse-blue {
+    0%,100% { text-shadow: 0 0 20px rgba(0,232,255,.4), 0 0 60px rgba(0,232,255,.1); }
+    50%      { text-shadow: 0 0 40px rgba(0,232,255,.7), 0 0 80px rgba(0,232,255,.2); }
+  }
+  @keyframes flicker-red {
+    0%,95%,100% { text-shadow: 0 0 20px rgba(255,32,32,.4); opacity:1; }
+    96%  { opacity:.7; }
+    97%  { opacity:1; }
+    98%  { opacity:.5; text-shadow:0 0 40px rgba(255,32,32,.8); }
+    99%  { opacity:1; }
+  }
+
+  .p-meta { display: flex; flex-direction: column; }
+  .p-unit { font-family:'Space Mono',monospace; font-size:clamp(9px,1.1vw,14px); color:#444; line-height:1; }
+  .p-who  { font-family:'Space Mono',monospace; font-size:clamp(8px,0.9vw,11px); letter-spacing:2px; text-transform:uppercase; line-height:1.3; }
+  .p-ping-row.fast-row .p-who { color: var(--cyan); }
+  .p-ping-row.slow-row .p-who { color: var(--red);  }
+
+  .p-vs-divider {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(14px,2vw,22px);
+    color:#2a2a2a; letter-spacing:4px; padding: 2px 0;
+  }
+  .p-caption {
+    font-family:'Space Mono',monospace;
+    font-size:clamp(7px,0.9vw,10px);
+    color:#333; letter-spacing:3px; text-transform:uppercase;
+  }
+
+  /* Center divider */
+  .p-divider {
+    position: absolute; z-index: 10;
+    left: 42%; top: 8%; bottom: 8%; width: 1px;
+    background: linear-gradient(to bottom, transparent, #222 20%, #222 80%, transparent);
+  }
+
+  /* Right panel — title + hook */
+  .p-right {
+    position: absolute; z-index: 10;
+    left: 43%; right: 0; top: 0; bottom: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: clamp(20px,4%,52px) clamp(16px,4.5%,56px) clamp(20px,4%,52px) clamp(16px,3%,40px);
+  }
+  .p-big-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 9.5vw, 112px);
+    line-height: 0.88; letter-spacing: 3px; color: var(--white);
+    margin-bottom: clamp(10px,1.5vw,20px); position: relative;
+  }
+  .p-glitch {
+    display: block; position: relative; color: var(--white);
+    animation: title-flicker 5s infinite;
+  }
+  .p-glitch::before {
+    content:'LAG'; position:absolute; top:0; left:0;
+    color:var(--cyan);
+    clip-path: polygon(0 30%,100% 30%,100% 55%,0 55%);
+    animation: ga 5s infinite;
+  }
+  .p-glitch::after {
+    content:'LAG'; position:absolute; top:0; left:0;
+    color:var(--red);
+    clip-path: polygon(0 60%,100% 60%,100% 80%,0 80%);
+    animation: gb 5s infinite;
+  }
+  @keyframes title-flicker { 0%,88%,91%,94%,100%{opacity:1} 89%,92%{opacity:.8} }
+  @keyframes ga { 0%,87%,100%{transform:translate(0);opacity:0} 88%{transform:translate(-6px,0);opacity:.9} 90%{transform:translate(4px,0);opacity:.6} 92%{transform:translate(0);opacity:0} }
+  @keyframes gb { 0%,89%,100%{transform:translate(0);opacity:0} 90%{transform:translate(6px,0);opacity:.8} 92%{transform:translate(-3px,0);opacity:.5} 93%{transform:translate(0);opacity:0} }
+
+  .p-sub {
+    font-family:'Space Mono',monospace;
+    font-size:clamp(8px,1vw,12px);
+    color:#555; letter-spacing:3px; text-transform:uppercase;
+    margin-bottom:clamp(10px,1.5vw,22px); line-height:1.6;
+  }
+  .p-hook {
+    font-family:'Syne',sans-serif;
+    font-size:clamp(11px,1.6vw,18px);
+    font-weight:800; color:#c8c4bc; line-height:1.45;
+    border-left:2px solid var(--red); padding-left:14px;
+    max-width:420px;
+  }
+  .p-hook span { color:var(--white); }
+
+  /* Loading bar */
+  .p-loader {
+    position:absolute; bottom: clamp(14px,2.5%,30px); left: clamp(16px,4%,52px);
+    z-index:10; display:flex; flex-direction:column; gap:5px;
+  }
+  .p-loader-label {
+    font-family:'Space Mono',monospace;
+    font-size:clamp(7px,0.85vw,10px); color:var(--red);
+    letter-spacing:3px; text-transform:uppercase;
+  }
+  .p-loader-track {
+    width: clamp(100px,14vw,180px); height:2px;
+    background:#1a1a1a; position:relative; overflow:hidden;
+  }
+  .p-loader-fill {
+    position:absolute; left:-60%; top:0; height:100%; width:60%;
+    background:var(--red); animation:loadbar 3.5s ease-in-out infinite;
+    box-shadow:0 0 8px rgba(255,32,32,.6);
+  }
+  @keyframes loadbar { 0%{left:-60%} 60%,100%{left:100%} }
+
+  /* Scroll hint arrow */
+  .scroll-hint {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px; padding: 28px 0 8px;
+    font-family:'Space Mono',monospace;
+    font-size:10px; letter-spacing:3px; color:#333;
+    text-transform:uppercase; animation: bob 2s ease-in-out infinite;
+  }
+  .scroll-hint svg { width:20px; opacity:.3; }
+  @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+  /* ============================================================
+     ARTICLE — flows beneath the poster
+  ============================================================ */
+  .article {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 64px 24px 120px;
+  }
+
+  .header-tag {
+    font-family:'Space Mono',monospace; font-size:11px;
+    color:var(--red); letter-spacing:4px; text-transform:uppercase;
+    margin-bottom:24px; display:flex; align-items:center; gap:10px;
+  }
+  .header-tag::before {
+    content:''; display:inline-block; width:28px; height:1px; background:var(--red);
+  }
+
+  h1 {
+    font-family:'Syne',sans-serif;
+    font-size:clamp(48px,10vw,88px); font-weight:800;
+    line-height:0.92; letter-spacing:-2px; margin-bottom:12px; position:relative;
+  }
+
+  .glitch-word {
+    display:inline-block; position:relative; color:var(--white);
+    animation:glitch-flicker 6s infinite;
+  }
+  .glitch-word::before, .glitch-word::after {
+    content:attr(data-text); position:absolute; top:0; left:0; width:100%;
+  }
+  .glitch-word::before {
+    color:var(--cyan); animation:glitch-left 6s infinite;
+    clip-path:polygon(0 20%,100% 20%,100% 40%,0 40%);
+  }
+  .glitch-word::after {
+    color:var(--pink); animation:glitch-right 6s infinite;
+    clip-path:polygon(0 60%,100% 60%,100% 80%,0 80%);
+  }
+  @keyframes glitch-left  { 0%,90%,100%{transform:translateX(0);opacity:0} 92%{transform:translateX(-4px);opacity:.8} 94%{transform:translateX(4px);opacity:.6} 96%{transform:translateX(-2px);opacity:.9} 98%{transform:translateX(0);opacity:0} }
+  @keyframes glitch-right { 0%,88%,100%{transform:translateX(0);opacity:0} 90%{transform:translateX(5px);opacity:.7} 93%{transform:translateX(-3px);opacity:.5} 95%{transform:translateX(2px);opacity:0} }
+  @keyframes glitch-flicker { 0%,89%,91%,93%,100%{opacity:1} 90%,92%{opacity:.85} }
+
+  .subtitle {
+    font-family:'Space Mono',monospace; font-size:13px;
+    color:var(--dim); margin-bottom:48px; letter-spacing:1px;
+  }
+
+  /* Inline ping bar inside article */
+  .ping-visual {
+    background:var(--mid); border:1px solid #2a2a2a; border-left:3px solid var(--red);
+    padding:20px 24px; margin-bottom:48px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:20px; flex-wrap:wrap;
+  }
+  .ping-block { text-align:center; }
+  .ping-number {
+    font-family:'Syne',sans-serif; font-weight:800; font-size:32px; display:block;
+  }
+  .ping-label { font-size:10px; letter-spacing:3px; color:var(--dim); text-transform:uppercase; }
+  .ping-low  .ping-number { color:var(--cyan); }
+  .ping-high .ping-number { color:var(--red); }
+  .ping-divider { font-size:24px; color:#333; font-family:'Syne',sans-serif; }
+  .ping-caption { width:100%; font-size:11px; color:#555; text-align:center; letter-spacing:2px; }
+
+  .lead {
+    font-family:'Syne',sans-serif; font-size:21px; font-weight:700;
+    line-height:1.4; color:var(--white); margin-bottom:32px;
+    border-left:2px solid var(--red); padding-left:20px;
+  }
+
+  p { color:#c8c4bc; margin-bottom:24px; font-size:15px; }
+  strong { color:var(--white); font-weight:600; }
+  em { color:var(--cyan); font-style:normal; }
+
+  .section-label {
+    font-family:'Space Mono',monospace; font-size:10px;
+    letter-spacing:5px; color:var(--red); text-transform:uppercase;
+    margin:56px 0 16px; display:flex; align-items:center; gap:12px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:#222; }
+
+  h2 {
+    font-family:'Syne',sans-serif; font-size:26px; font-weight:800;
+    line-height:1.2; margin-bottom:20px; letter-spacing:-.5px;
+  }
+
+  /* Comparison grid */
+  .compare-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:2px;
+    margin:40px 0; background:#222;
+  }
+  .compare-cell { padding:24px 20px; }
+  .compare-cell.elite { background:#080f14; }
+  .compare-cell.lag   { background:#130808; }
+  .compare-cell-label {
+    font-family:'Space Mono',monospace; font-size:10px; letter-spacing:3px;
+    text-transform:uppercase; margin-bottom:14px;
+  }
+  .elite .compare-cell-label { color:var(--cyan); }
+  .lag   .compare-cell-label { color:var(--red);  }
+  .compare-item {
+    font-size:13px; color:#aaa; margin-bottom:10px;
+    padding-left:14px; position:relative; line-height:1.5;
+  }
+  .compare-item::before { content:'→'; position:absolute; left:0; font-size:11px; }
+  .elite .compare-item::before { color:var(--cyan); }
+  .lag   .compare-item::before { color:var(--red);  }
+
+  /* Pull quote */
+  .pull-quote {
+    margin:48px 0; padding:32px;
+    background:linear-gradient(135deg,#0d0d10,#130d0d);
+    border:1px solid #2a2020; position:relative; overflow:hidden;
+  }
+  .pull-quote::before {
+    content:'"'; font-family:'Syne',sans-serif; font-size:160px; font-weight:800;
+    color:rgba(255,43,43,.06); position:absolute; top:-20px; left:10px;
+    line-height:1; pointer-events:none;
+  }
+  .pull-quote p {
+    font-family:'Syne',sans-serif; font-size:20px; font-weight:700;
+    color:var(--white); margin:0; line-height:1.4; position:relative;
+  }
+  .pull-quote .attribution {
+    font-family:'Space Mono',monospace; font-size:11px;
+    color:var(--red); margin-top:14px; letter-spacing:3px;
+  }
+
+  /* Stat row */
+  .stat-row {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:2px;
+    margin:40px 0; background:#1a1a1a;
+  }
+  .stat-cell { background:var(--black); padding:24px 16px; text-align:center; }
+  .stat-number {
+    font-family:'Syne',sans-serif; font-size:36px; font-weight:800;
+    color:var(--white); display:block; line-height:1; margin-bottom:8px;
+  }
+  .stat-desc { font-size:11px; color:var(--dim); letter-spacing:1px; line-height:1.4; }
+
+  /* Network diagram */
+  .network-visual {
+    margin:48px 0; background:var(--mid); padding:32px 24px;
+    border:1px solid #1f1f1f; font-family:'Space Mono',monospace; font-size:12px;
+  }
+  .network-title {
+    color:var(--dim); font-size:10px; letter-spacing:4px;
+    text-transform:uppercase; margin-bottom:24px;
+  }
+  .node-row { display:flex; align-items:center; margin-bottom:14px; }
+  .node { padding:8px 14px; font-size:11px; letter-spacing:1px; white-space:nowrap; }
+  .node-corp  { background:rgba(0,240,255,.1); border:1px solid rgba(0,240,255,.3); color:var(--cyan); }
+  .node-rich  { background:rgba(0,240,255,.05); border:1px solid rgba(0,240,255,.15); color:#88d4dc; }
+  .node-poor  { background:rgba(255,43,43,.05);  border:1px solid rgba(255,43,43,.15);  color:#dc8888; }
+  .wire { flex:1; height:1px; position:relative; display:flex; align-items:center; justify-content:center; }
+  .wire-line { width:100%; height:1px; }
+  .wire-fast .wire-line { background:var(--cyan); }
+  .wire-slow .wire-line {
+    background:repeating-linear-gradient(90deg,var(--red) 0,var(--red) 4px,transparent 4px,transparent 10px);
+  }
+  .wire-label { position:absolute; font-size:9px; letter-spacing:2px; top:-16px; white-space:nowrap; }
+  .wire-fast .wire-label { color:var(--cyan); }
+  .wire-slow .wire-label { color:var(--red); }
+
+  /* Timeline */
+  .timeline { margin:40px 0; border-left:2px solid #2a2a2a; padding-left:24px; }
+  .tl-item { position:relative; margin-bottom:32px; }
+  .tl-item::before {
+    content:''; position:absolute; left:-30px; top:6px;
+    width:10px; height:10px; border-radius:50%; border:2px solid;
+  }
+  .tl-item.elite::before  { border-color:var(--cyan); background:rgba(0,240,255,.2); }
+  .tl-item.lagged::before { border-color:var(--red);  background:rgba(255,43,43,.2); }
+  .tl-time {
+    font-family:'Space Mono',monospace; font-size:10px; letter-spacing:3px; margin-bottom:6px;
+  }
+  .tl-item.elite  .tl-time { color:var(--cyan); }
+  .tl-item.lagged .tl-time { color:var(--red); }
+  .tl-text { font-size:14px; color:#b0acaa; line-height:1.65; }
+  .tl-text strong { color:var(--white); }
+
+  /* Reality box */
+  .reality-box {
+    border:1px solid #2a2a2a; border-top:3px solid var(--cyan);
+    background:#0a0a0e; padding:28px 24px; margin:40px 0;
+  }
+  .reality-box-label {
+    font-family:'Space Mono',monospace; font-size:10px; letter-spacing:4px;
+    color:var(--cyan); text-transform:uppercase; margin-bottom:16px;
+  }
+  .reality-box p { font-size:14px; color:#aaa; margin-bottom:14px; }
+  .reality-box p:last-child { margin-bottom:0; }
+
+  /* Glitch terminal line */
+  .glitch-line {
+    font-family:'Space Mono',monospace; font-size:11px;
+    color:var(--red); letter-spacing:2px;
+    animation:blink 1.4s step-end infinite;
+    margin:32px 0; display:flex; align-items:center; gap:8px;
+  }
+  .glitch-line::before { content:'▋'; animation:blink .7s step-end infinite; }
+  @keyframes blink { 50%{opacity:0} }
+
+  /* Footer */
+  .footer-bar {
+    margin-top:80px; padding-top:32px; border-top:1px solid #1f1f1f;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    flex-wrap:wrap; gap:16px;
+  }
+  .footer-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; color:var(--white); }
+  .footer-meta { font-family:'Space Mono',monospace; font-size:10px; color:#444; letter-spacing:2px; }
+  .tag-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:24px; }
+  .tag {
+    font-family:'Space Mono',monospace; font-size:10px; padding:4px 10px;
+    border:1px solid #2a2a2a; color:#555; letter-spacing:2px; text-transform:uppercase;
+  }
+
+  /* Scroll reveal */
+  .fade-up { opacity:0; transform:translateY(24px); transition:opacity .6s ease, transform .6s ease; }
+  .fade-up.visible { opacity:1; transform:translateY(0); }
+
+  /* ============================================================
+     RESPONSIVE
+  ============================================================ */
+  @media (max-width:600px) {
+    .p-left { width:44%; }
+    .p-divider { left:44%; }
+    .p-right { left:46%; }
+    .compare-grid { grid-template-columns:1fr; }
+    .stat-row { grid-template-columns:1fr; }
+    h1 { font-size:52px; }
+    .ping-visual { flex-direction:column; text-align:center; }
+    .node { font-size:9px; padding:5px 7px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     POSTER HERO
+============================================================ -->
+<div class="poster">
+  <div class="p-glow-r"></div>
+  <div class="p-glow-b"></div>
+  <div class="p-slash"></div>
+  <div class="p-slash2"></div>
+  <div class="p-grain"></div>
+  <div class="p-scanlines"></div>
+
+  <!-- Left: ping numbers -->
+  <div class="p-left">
+    <div class="p-eyebrow">Human Network // Netropolis</div>
+    <div class="p-vs-block">
+      <div class="p-ping-row fast-row">
+        <div class="p-num fast">4</div>
+        <div class="p-meta">
+          <span class="p-unit">ms</span>
+          <span class="p-who">The Rich</span>
+        </div>
+      </div>
+      <div class="p-vs-divider">— VS —</div>
+      <div class="p-ping-row slow-row">
+        <div class="p-num slow">2400</div>
+        <div class="p-meta">
+          <span class="p-unit">ms</span>
+          <span class="p-who">The Rest</span>
+        </div>
+      </div>
+    </div>
+    <div class="p-caption">Same city. Same body. Different reality.</div>
+  </div>
+
+  <div class="p-divider"></div>
+
+  <!-- Right: title + hook -->
+  <div class="p-right">
+    <div class="p-big-title">
+      <span class="p-glitch">LAG</span>
+      THE HUMAN
+      DISCONNECT
+    </div>
+    <div class="p-sub">A sci-fi concept // Neural implants // Class war</div>
+    <div class="p-hook">
+      What if being <span>poor</span> didn't just hurt your wallet —<br>
+      but made your body move <span>slower?</span>
+      <span style="display:inline-block;width:10px;height:18px;background:var(--red);margin-left:4px;vertical-align:middle;animation:blink 1s step-end infinite;"></span>
+    </div>
+  </div>
+
+  <!-- Loading bar -->
+  <div class="p-loader">
+    <div class="p-loader-label">Body Sync // Lagging...</div>
+    <div class="p-loader-track"><div class="p-loader-fill"></div></div>
+  </div>
+</div>
+
+<!-- Scroll hint between poster and article -->
+<div class="scroll-hint">
+  <span>Scroll to read</span>
+  <svg viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2">
+    <path d="M12 5v14M5 12l7 7 7-7"/>
+  </svg>
+</div>
+
+<!-- ============================================================
+     ARTICLE
+============================================================ -->
+<div class="article">
+
+  <div class="header-tag fade-up">Sci-Fi / Idea / Social Commentary</div>
+
+  <h1 class="fade-up">
+    <span class="glitch-word" data-text="LAG">LAG</span><br>
+    THE HUMAN<br>DISCONNECT.
+  </h1>
+
+  <p class="subtitle fade-up">A story about internet speed, the human body, and who gets left behind.</p>
+
+  <div class="ping-visual fade-up">
+    <div class="ping-block ping-low">
+      <span class="ping-number">4ms</span>
+      <span class="ping-label">Elite Ping</span>
+    </div>
+    <div class="ping-divider">vs</div>
+    <div class="ping-block ping-high">
+      <span class="ping-number">2400ms</span>
+      <span class="ping-label">Underclass Ping</span>
+    </div>
+    <span class="ping-caption">// Same city. Same street. Different reality. //</span>
+  </div>
+
+  <p class="lead fade-up">
+    Imagine if your internet speed didn't just decide how fast YouTube loads — but how fast your own body moves. What if the rich moved fast, and the poor were stuck loading?
+  </p>
+
+  <p class="fade-up">
+    That question kept me up at night. And it turned into a story idea I've been building called <strong>Lag: The Human Disconnect</strong>. It's a sci-fi thriller. It's set in a city called <em>Netropolis</em>. And it might be the most honest story about inequality I've ever tried to tell — not because it's realistic, but because it takes something we already accept and just makes it impossible to ignore.
+  </p>
+
+  <p class="fade-up">
+    Here is the full idea, broken down. Read it slowly. Because I think by the end, you'll realize this isn't just a made-up world. It's our world — with the mask off.
+  </p>
+
+  <div class="glitch-line fade-up">LOADING WORLD DATA... PLEASE WAIT...</div>
+
+  <!-- PART 1 -->
+  <div class="section-label fade-up">Part 1</div>
+  <h2 class="fade-up">The World of Netropolis — Where Your Body Runs on Wi-Fi</h2>
+
+  <p class="fade-up">
+    It is the near future. Not flying cars, not robots everywhere — just one big change. Scientists figured out how to connect the human brain to a global network using a tiny implant at the back of the skull. They called it the <strong>Human Network</strong>.
+  </p>
+
+  <p class="fade-up">
+    The idea was simple and it sounded amazing at first. Your brain sends a signal — like wanting to pick up a cup, or wanting to speak, or wanting to move your arm. That signal goes through the implant, travels through the network, and then comes back to your body as an action. Think of it like a remote control, but for your own muscles and senses. The network handles everything in between.
+  </p>
+
+  <p class="fade-up">
+    When the network is fast, the delay between your thought and your action is almost zero. You think "catch that glass" and your hand is already catching it before you even finish the thought. Everything feels smooth. Effortless. Like the world is cooperating with you. Like you're running on a perfect engine.
+  </p>
+
+  <p class="fade-up">
+    When the network is slow, there is a gap. You think "catch that glass" — and two seconds later, your hand reaches out. But by then the glass is already on the floor. This gap between your thought and your body's response is called <strong>lag</strong>. And in Netropolis, lag is not just a technical problem. It is a life sentence.
+  </p>
+
+  <div class="network-visual fade-up">
+    <div class="network-title">// How the Human Network Works in Netropolis //</div>
+    <div class="node-row">
+      <div class="node node-corp">NEXCORP SERVER HUB</div>
+      <div class="wire wire-fast">
+        <div class="wire-line"></div>
+        <span class="wire-label">TIER 1 — INSTANT // 4ms</span>
+      </div>
+      <div class="node node-rich">ELITE CITIZENS</div>
+    </div>
+    <div class="node-row">
+      <div class="node node-corp">NEXCORP SERVER HUB</div>
+      <div class="wire wire-slow">
+        <div class="wire-line"></div>
+        <span class="wire-label">TIER 4 — BROKEN // 1800–3000ms</span>
+      </div>
+      <div class="node node-poor">DISTRICT 7 WORKERS</div>
+    </div>
+  </div>
+
+  <p class="fade-up">
+    Now here is where the story gets dark. The network is not run by the government. It is owned by three giant companies. And these companies sell bandwidth — the same way phone companies today sell data plans. You pay more, you get a faster connection. You pay less, you get slow speed. You can't afford to pay? You get whatever speed is left over after the rich have taken what they want.
+  </p>
+
+  <p class="fade-up">
+    And the worst part — the thing that makes Netropolis so cruel — is that the rich don't just buy speed for themselves. They buy the <strong>right to slow everyone else down</strong>. The network has a limit. The more bandwidth the top 1% locks up for their own bodies, the less is available for everyone else. Their luxury is built on other people's lag.
+  </p>
+
+  <p class="fade-up">
+    Nobody talks about this out loud. The companies call it "premium service." Politicians call it "free market infrastructure." But what it really is — underneath all the nice words — is simple. <strong>Money buys you a faster body. Poverty gives you a broken one.</strong>
+  </p>
+
+  <!-- PART 2 -->
+  <div class="section-label fade-up">Part 2</div>
+  <h2 class="fade-up">What Does It Actually Feel Like to Lag?</h2>
+
+  <p class="fade-up">
+    I want you to really understand this — not just as an idea, but as a feeling. So let me walk you through a single day in Netropolis. The same morning. Two different people. Same city, same time, completely different experience.
+  </p>
+
+  <div class="timeline fade-up">
+    <div class="tl-item elite">
+      <div class="tl-time">// 7:04 AM — ELITE CONNECTION</div>
+      <div class="tl-text">Marcus Chen wakes up. His alarm goes off and his hand hits the snooze button in under half a second. He sits up, reaches for his coffee, and is already checking his morning messages before his feet touch the floor. He gets dressed in under four minutes, dodges his daughter's toy car in the hallway without even looking down. In the elevator, he processes three documents, replies to five messages, and rehearses his morning presentation — all at the same time. <strong>His body and mind feel like one smooth machine.</strong></div>
+    </div>
+
+    <div class="tl-item lagged">
+      <div class="tl-time">// 7:04 AM — LAGGED CONNECTION</div>
+      <div class="tl-text">Alex wakes up. His alarm goes off. He tries to reach for it — but his arm doesn't move for nearly two seconds. By the time he hits snooze, the sound has already woken his neighbor. He stands up too fast and his legs respond late, so he stumbles into the door frame. He reaches for his coffee and misjudges the timing — his fingers close around air, then clamp down a second too late, and coffee splashes across the counter. He mops it up. He is already running behind. And he has not even left the house. <strong>Every small thing takes twice as long. Every small mistake costs something.</strong></div>
+    </div>
+
+    <div class="tl-item elite">
+      <div class="tl-time">// 8:30 AM — ELITE AT WORK</div>
+      <div class="tl-text">Marcus walks into a high-speed meeting. He speaks before others finish their sentences — not because he's rude, but because his brain is processing the conversation faster than most people speak. He catches a pen rolling off the table before anyone else sees it move. His boss looks at him and thinks: <strong>"That man is naturally gifted."</strong></div>
+    </div>
+
+    <div class="tl-item lagged">
+      <div class="tl-time">// 8:30 AM — ALEX AT WORK</div>
+      <div class="tl-text">Alex arrives at the warehouse. He tries to keep up with the sorting line, but there is always a gap between what his eyes see and what his hands do. He drops a package. His supervisor marks it down. He tries to explain something to a co-worker — but the words come out half a beat late, stumbling over each other. The co-worker walks away before Alex finishes. <strong>His boss looks at him and thinks: "That man is a liability."</strong></div>
+    </div>
+  </div>
+
+  <p class="fade-up">
+    Same morning. Same city. But one man is seen as brilliant, and the other is seen as incompetent. The difference is not talent. The difference is not work ethic. <strong>The difference is 2,396 milliseconds.</strong>
+  </p>
+
+  <div class="compare-grid fade-up">
+    <div class="compare-cell elite">
+      <div class="compare-cell-label">// Low Ping Life — The Elite</div>
+      <div class="compare-item">Reflexes faster than a normal human — catch things before they fall</div>
+      <div class="compare-item">Can do many things at once without losing focus</div>
+      <div class="compare-item">Speak clearly and respond in conversations instantly</div>
+      <div class="compare-item">Body dodges danger before the brain fully registers it</div>
+      <div class="compare-item">Never late, never clumsy, never lost in a crowd</div>
+      <div class="compare-item">Seen as smart, capable, and "born talented"</div>
+    </div>
+    <div class="compare-cell lag">
+      <div class="compare-cell-label">// High Ping Life — The Lagged</div>
+      <div class="compare-item">Fired from jobs for being "too slow" or "too clumsy"</div>
+      <div class="compare-item">Blamed for accidents that are actually caused by the delay</div>
+      <div class="compare-item">Left out of conversations because responses come too late</div>
+      <div class="compare-item">Injuries happen because the body doesn't react to danger in time</div>
+      <div class="compare-item">Seen as reckless, unreliable, or "not trying hard enough"</div>
+      <div class="compare-item">Arrested for "erratic behavior" that is just their body loading slowly</div>
+    </div>
+  </div>
+
+  <!-- PART 3 -->
+  <div class="section-label fade-up">Part 3</div>
+  <h2 class="fade-up">The Cruelest Part — Nobody Sees the Bandwidth. They Only See the Result.</h2>
+
+  <p class="fade-up">
+    Here is what makes this world so perfectly horrible: the lag is invisible to everyone watching. They don't see the milliseconds. They don't see the broken connection. They only see what comes out the other end — a spilled drink, a stumble, a late answer, a missed deadline.
+  </p>
+
+  <p class="fade-up">
+    And because they can't see the cause, they make up their own explanation. They decide the person is lazy. Or careless. Or just not smart enough. The lag doesn't announce itself. It just leaves evidence — and lets other people draw the wrong conclusion.
+  </p>
+
+  <div class="pull-quote fade-up">
+    <p>You don't see someone's connection speed. You just see them drop the ball. And you decide that means something about who they are.</p>
+    <div class="attribution">— THE LOGIC OF NETROPOLIS // AND ALSO OURS</div>
+  </div>
+
+  <p class="fade-up">
+    This is the part of the story that hits hardest for me. Because it is not just science fiction. Think about how many times a person is judged by their output — not their circumstances. Think about someone who grew up without a good school, without a safe home, without the right connections — and then gets judged in a job interview for being "underprepared." The preparation gap is invisible. The result is not.
+  </p>
+
+  <p class="fade-up">
+    Netropolis just takes this invisible gap and makes it physical. It gives inequality a body. It forces you to watch it happen in real time — in someone's hands, in their voice, in their stride. You can't look away and say "well, they should have tried harder." You can see the signal. You can see the delay. You know exactly why the glass fell.
+  </p>
+
+  <!-- PART 4 -->
+  <div class="section-label fade-up">Part 4</div>
+  <h2 class="fade-up">Alex — The Man Who Learned to Live Inside the Delay</h2>
+
+  <p class="fade-up">
+    Our main character is Alex. He is not a hero with special powers. He is not secretly gifted or chosen. He is just a regular guy who has spent his entire life living two seconds behind the world — and figuring out how to survive in it.
+  </p>
+
+  <p class="fade-up">
+    Alex grew up in District 7, one of the poorest areas of Netropolis. His family could never afford better bandwidth. He went to school with lag. He played sports with lag. He made friends — or tried to — with lag. Every conversation was a little off. Every handshake was a beat too slow. People thought he was strange. Teachers thought he wasn't paying attention. Kids called him "glitchy."
+  </p>
+
+  <p class="fade-up">
+    But here is what nobody understood about Alex: <strong>when your body always responds late, you learn to think ahead.</strong> You learn to read a room before you enter it. You learn to anticipate where a ball will be three seconds from now, because you know your hands won't respond until then. You learn to choose your words carefully because once they leave your brain, you have no control over when they arrive.
+  </p>
+
+  <p class="fade-up">
+    Alex is not slower than the elites. He is different. He has built a way of thinking that they never had to develop — because they never needed it. His lag forced him to pay attention in a way that no high-ping life could ever teach. <strong>He is the most observant person in any room. He just moves two seconds after everyone else sees him think.</strong>
+  </p>
+
+  <div class="stat-row fade-up">
+    <div class="stat-cell">
+      <span class="stat-number">2.4s</span>
+      <span class="stat-desc">Alex's average body response delay</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-number">14×</span>
+      <span class="stat-desc">Times fired in three years for "performance issues"</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-number">0</span>
+      <span class="stat-desc">Times the real cause was ever written in a report</span>
+    </div>
+  </div>
+
+  <p class="fade-up">
+    The story begins when Alex accidentally intercepts a private corporate signal while trying to boost his own connection from a rooftop antenna in District 7. What he finds inside that signal is not just code. It is a map — a map that shows exactly how the bandwidth is being distributed across Netropolis. And what that map shows is not an accident. It is not bad planning. It is <strong>intentional</strong>. The lag in District 7 is not the result of not enough infrastructure. There is plenty of bandwidth. It is just being deliberately routed away from poor areas and held in reserve for elite zones — not because it is needed there, but because keeping it scarce keeps the price high.
+  </p>
+
+  <p class="fade-up">
+    Alex now knows something that could change everything. And the companies that benefit from this system know that he knows. What follows is part chase, part investigation, and part something harder to describe — a man trying to decide whether fighting the system is worth becoming the kind of person the system wants to destroy.
+  </p>
+
+  <!-- PART 5 -->
+  <div class="section-label fade-up">Part 5</div>
+  <h2 class="fade-up">Why I'm Writing This Story — And Why It Isn't Just Fiction</h2>
+
+  <p class="fade-up">
+    I want to be honest with you about something. I didn't come up with this concept to write a cool thriller. I came up with it because I kept reading real news and feeling like I couldn't explain what I was feeling. So I turned it into a story instead.
+  </p>
+
+  <p class="fade-up">
+    Because the lag is real. We just give it different names. We call it the <em>digital divide</em>. We call it <em>connectivity inequality</em>. We call it <em>infrastructure gaps</em>. We write it up in reports and talk about it at conferences and very little changes.
+  </p>
+
+  <div class="reality-box fade-up">
+    <div class="reality-box-label">// The Real-World Lag — This Is Happening Right Now</div>
+    <p>In many countries, low-income areas have internet speeds so slow that students cannot properly attend online school. Their grades fall. Teachers mark them as disengaged. Nobody mentions that their connection dropped out three times during the lesson.</p>
+    <p>Rural workers apply for jobs on government websites that time out before the form loads. They are marked as "did not complete application." The system sees them as uninterested. It does not see the 45-minute loading bar.</p>
+    <p>Patients in poorly connected areas wait much longer to access telehealth services, get test results, or even make appointments. The people who need medical help most are the slowest to receive it — not because they didn't try, but because the signal is always slow where they live.</p>
+    <p>Meanwhile, companies in wealthy tech districts pay for the highest fiber speeds available, process thousands of transactions per second, and receive tax breaks for the privilege. <strong>Their speed is subsidized. Everyone else's slow connection is described as a personal failure to invest in better service.</strong></p>
+  </div>
+
+  <p class="fade-up">
+    Lag: The Human Disconnect takes all of this and puts it in someone's hands. Literally. It forces you to watch a real person try to exist in a world that has been rigged against their body. You can't read about Alex stumbling into a door frame and think "he should have moved faster." You know why he stumbled. You've seen the map. You know who built it this way on purpose.
+  </p>
+
+  <p class="fade-up">
+    That is what good sci-fi is supposed to do. It is not supposed to predict the future. It is supposed to help you see the present in a way that is impossible to look away from.
+  </p>
+
+  <!-- PART 6 -->
+  <div class="section-label fade-up">Part 6</div>
+  <h2 class="fade-up">The Bigger Question This Story Is Really Asking</h2>
+
+  <p class="fade-up">
+    Underneath all the action and the corporate conspiracy and the glitchy visuals, this story is really asking one question. Not "will Alex win?" Not "can the system be fixed?" But something quieter and harder:
+  </p>
+
+  <div class="pull-quote fade-up">
+    <p>What if being fast isn't actually the goal? What if slowing down is the most human thing left to do?</p>
+    <div class="attribution">— THE REAL QUESTION AT THE HEART OF LAG //</div>
+  </div>
+
+  <p class="fade-up">
+    Because here is the thing about the elite in Netropolis. Yes, they move fast. Yes, they react instantly. Yes, they are efficient and sharp and seemingly in control of everything. But watch them long enough and you notice something strange. <strong>They never sit still. They never wait for anything. They have no patience because they have never had to develop it.</strong> They have never had to work around a delay, never had to think three moves ahead, never had to sit with the slow discomfort of not being able to respond the way they wanted to.
+  </p>
+
+  <p class="fade-up">
+    The lag, for all the pain it causes Alex, has given him something real. He is present in a way the elites never are. He notices things they skip past in their rush to react. He waits. He thinks. He has learned that the space between a thought and an action is not wasted time — it is where wisdom lives. <strong>He has been forced to be human in a world that has decided being human is a defect to be upgraded.</strong>
+  </p>
+
+  <p class="fade-up">
+    The story does not end with Alex becoming fast. It ends with him asking whether speed was ever the point. And it ends with the audience — hopefully — asking the same thing about their own world.
+  </p>
+
+  <!-- FINAL -->
+  <div class="section-label fade-up">Final Thought</div>
+  <h2 class="fade-up">We Have Already Decided That Fast Equals Good. That Was the First Mistake.</h2>
+
+  <p class="fade-up">
+    Every app we build rewards the fastest response. Every algorithm punishes the slow reply. Every hiring system scores people on throughput — how much they can do, how quickly they can do it, how efficiently they process and produce. We have built an entire civilization around the idea that speed and worth are the same thing.
+  </p>
+
+  <p class="fade-up">But they are not. They never were. We just forgot that somewhere in the race to optimize everything.</p>
+
+  <p class="fade-up">
+    A person who thinks slowly might be thinking deeply. A person who speaks late might be choosing their words with care. A person who cannot keep up with the pace of the modern world might be trying to tell us something important about the pace of the modern world — that it is not built for humans. It is built for machines that happen to have people inside them.
+  </p>
+
+  <p class="fade-up">
+    Lag: The Human Disconnect is a story about what happens when a society forgets this. When it decides that the glitch is the problem, instead of asking who designed the system that made the glitch feel like failure.
+  </p>
+
+  <p class="fade-up">
+    Alex is lagged. He is imperfect. He is behind. And he is the most fully alive person in the entire city of Netropolis.
+  </p>
+
+  <p class="fade-up">
+    <strong>The glitch is not the flaw.</strong><br>
+    The glitch is the proof that something real is still running underneath all the speed.
+  </p>
+
+  <div class="glitch-line fade-up">HUMAN_SIGNAL_DETECTED :: IMPERFECT :: STILL RUNNING :: DO NOT OPTIMIZE</div>
+
+  <div class="footer-bar fade-up">
+    <div>
+      <div class="footer-title">LAG: The Human Disconnect</div>
+      <div class="footer-meta">An idea. A story. A mirror.</div>
+    </div>
+    <div class="footer-meta" style="text-align:right;">
+      NETROPOLIS // 20XX<br>
+      by Aditya Nayak
+    </div>
+  </div>
+  <div class="tag-list fade-up">
+    <span class="tag">#SciFi</span>
+    <span class="tag">#DigitalDivide</span>
+    <span class="tag">#Lag</span>
+    <span class="tag">#Inequality</span>
+    <span class="tag">#NetropolisStories</span>
+    <span class="tag">#Speculative</span>
+    <span class="tag">#Cyberpunk</span>
+    <span class="tag">#HumanNetwork</span>
+  </div>
+</div>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
